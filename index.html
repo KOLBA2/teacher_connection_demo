@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ka" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeacherConnect - Ultra</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#09090b',       
+                            panel: '#18181b',    
+                            border: '#27272a'    
+                        },
+                        brand: {
+                            DEFAULT: '#6366f1',  
+                            glow: '#818cf8'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans Georgian', sans-serif;
+            background-color: #09090b;
+            color: #e4e4e7;
+            overflow-x: hidden;
+        }
+
+        /* Glowing Background */
+        #mouse-glow {
+            position: fixed;
+            top: 0; left: 0;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(60px);
+            transition: opacity 0.5s;
+        }
+
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+        .nav-active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left: 3px solid #6366f1;
+        }
+    </style>
+</head>
+<body class="selection:bg-brand selection:text-white">
+
+    <div id="mouse-glow"></div>
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3"></div>
+
+    <section id="auth-section" class="min-h-screen flex items-center justify-center relative z-10 px-4">
+        <div class="glass-panel w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-dark-border">
+            
+            <div class="hidden md:flex flex-col justify-center p-10 w-1/2 bg-gradient-to-br from-brand/20 to-transparent relative">
+                <h1 class="text-4xl font-bold text-white mb-4 z-10">TeacherConnect</h1>
+                <p class="text-gray-400 z-10">პლატფორმა განათლებისთვის.</p>
+                <div class="mt-8 z-10 space-y-3 text-sm text-gray-300">
+                    <div class="flex items-center gap-3"><i class="fas fa-check-circle text-brand"></i> სელფი ვერიფიკაცია</div>
+                    <div class="flex items-center gap-3"><i class="fas fa-check-circle text-brand"></i> AI ასისტენტი</div>
+                </div>
+            </div>
+
+            <div class="w-full md:w-1/2 p-8 md:p-10 bg-dark-bg/50">
+                <div class="flex gap-6 mb-8 border-b border-dark-border pb-1">
+                    <button onclick="toggleAuth('login')" id="btn-login" class="pb-2 font-bold text-brand border-b-2 border-brand transition">შესვლა</button>
+                    <button onclick="toggleAuth('register')" id="btn-register" class="pb-2 text-gray-500 hover:text-white transition">რეგისტრაცია</button>
+                </div>
+
+                <form id="login-form" class="space-y-5">
+                    <input type="text" id="log-user" placeholder="ელ-ფოსტა ან ნომერი" class="w-full bg-dark-panel border border-dark-border rounded-lg px-4 py-3 focus:border-brand outline-none transition text-sm text-white">
+                    <input type="password" id="log-pass" placeholder="პაროლი" class="w-full bg-dark-panel border border-dark-border rounded-lg px-4 py-3 focus:border-brand outline-none transition text-sm text-white">
+                    <button type="submit" class="w-full bg-brand hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transition transform active:scale-95">შესვლა</button>
+                </form>
+
+                <form id="register-form" class="space-y-4 hidden h-[400px] overflow-y-auto pr-2 custom-scroll">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="reg-name" placeholder="სახელი" class="bg-dark-panel border border-dark-border rounded-lg px-4 py-3 outline-none focus:border-brand text-white">
+                        <input type="text" id="reg-surname" placeholder="გვარი" class="bg-dark-panel border border-dark-border rounded-lg px-4 py-3 outline-none focus:border-brand text-white">
+                    </div>
+                    <input type="email" id="reg-email" placeholder="ელ-ფოსტა" class="w-full bg-dark-panel border border-dark-border rounded-lg px-4 py-3 outline-none focus:border-brand text-white">
+                    <div>
+                        <input type="text" id="reg-phone" placeholder="5XX XX XX XX" maxlength="9" class="w-full bg-dark-panel border border-dark-border rounded-lg px-4 py-3 outline-none focus:border-brand text-white">
+                        <p class="text-[10px] text-gray-500 mt-1 pl-1">მხოლოდ ციფრები, 9 ნიშნა</p>
+                    </div>
+                    <input type="password" id="reg-pass" placeholder="პაროლი" class="w-full bg-dark-panel border border-dark-border rounded-lg px-4 py-3 outline-none focus:border-brand text-white">
+                    <select id="reg-role" onchange="checkTeacher()" class="w-full bg-dark-panel border border-dark-border rounded-lg px-4 py-3 outline-none focus:border-brand text-gray-300">
+                        <option value="student">მოსწავლე</option>
+                        <option value="teacher">მასწავლებელი</option>
+                    </select>
+
+                    <div id="teacher-verify" class="hidden space-y-4 border-t border-dark-border pt-4">
+                        <div class="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded text-yellow-500 text-xs">
+                            <i class="fas fa-id-card mr-1"></i> მასწავლებლებისთვის სავალდებულოა ვერიფიკაცია
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">ID ბარათის ასლი</label>
+                            <input type="file" id="reg-id" class="text-xs text-gray-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-2">სელფი ვერიფიკაცია</label>
+                            <div class="flex gap-2 mb-2">
+                                <button type="button" onclick="startCamera()" class="bg-gray-700 px-3 py-2 rounded text-xs text-white">კამერა</button>
+                                <button type="button" onclick="takePhoto()" id="snap-btn" class="hidden bg-green-600 px-3 py-2 rounded text-xs text-white">გადაღება</button>
+                            </div>
+                            <video id="webcam" autoplay playsinline class="hidden w-full h-32 object-cover rounded"></video>
+                            <canvas id="canvas" class="hidden"></canvas>
+                            <img id="selfie-preview" class="hidden w-full h-32 object-cover rounded border border-green-500">
+                            <input type="hidden" id="selfie-data">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-brand hover:bg-indigo-500 text-white font-bold py-3 rounded-lg mt-2 transition">რეგისტრაცია</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <main id="dashboard" class="hidden min-h-screen flex z-10 relative">
+        
+        <aside class="w-64 glass-panel border-r border-dark-border flex flex-col fixed h-full z-20">
+            <div class="p-6 flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-gradient-to-tr from-brand to-purple-600 flex items-center justify-center font-bold text-white">TC</div>
+                <span class="font-bold text-lg tracking-tight text-white">Connect</span>
+            </div>
+
+            <nav class="flex-1 px-4 space-y-2 py-4">
+                <button onclick="setFeedMode('all')" id="nav-home" class="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 transition nav-active">
+                    <i class="fas fa-home text-lg"></i> მთავარი
+                </button>
+                
+                <button id="nav-create" onclick="openPostModal()" class="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 transition">
+                    <i class="fas fa-plus-circle text-lg text-green-400"></i> პოსტის დამატება
+                </button>
+
+                <button id="nav-myposts" onclick="setFeedMode('mine')" class="hidden w-full flex items-center gap-4 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 transition">
+                    <i class="fas fa-file-alt text-lg"></i> ჩემი პოსტები
+                </button>
+
+                <button onclick="setFeedMode('saved')" id="nav-saved" class="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 transition">
+                    <i class="fas fa-bookmark text-lg text-yellow-500"></i> შენახული
+                </button>
+
+                <button onclick="renderProfile()" class="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 transition">
+                    <i class="fas fa-user text-lg"></i> პროფილი
+                </button>
+                
+                <button onclick="logout()" class="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition mt-auto">
+                    <i class="fas fa-sign-out-alt text-lg"></i> გასვლა
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-dark-border">
+                <div class="flex items-center gap-3">
+                    <img id="side-avatar" src="" class="w-10 h-10 rounded-full object-cover border border-dark-border">
+                    <div class="overflow-hidden">
+                        <p id="side-name" class="font-bold text-sm truncate text-white"></p>
+                        <p id="side-role" class="text-xs text-gray-500 uppercase"></p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="flex-1 ml-64 p-8">
+            <header class="flex justify-between items-center mb-8">
+                <h2 id="page-title" class="text-2xl font-bold text-white">მთავარი</h2>
+                <div class="flex gap-4">
+                    <div class="relative w-64">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-500"></i>
+                        <input type="text" id="global-search" placeholder="ძებნა..." class="w-full bg-dark-panel/80 border-none rounded-full py-2 pl-10 pr-4 text-sm text-white focus:ring-1 focus:ring-brand">
+                    </div>
+                    <select id="filter-loc" onchange="renderFeed()" class="bg-dark-panel/80 border-none rounded-lg py-2 px-4 text-sm text-white focus:ring-1 focus:ring-brand">
+                        </select>
+                </div>
+            </header>
+
+            <div id="feed-container" class="space-y-6 max-w-3xl mx-auto pb-10"></div>
+        </div>
+    </main>
+
+    <div id="post-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 relative">
+            <button onclick="closeModal('post-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            <h2 class="text-xl font-bold mb-4 text-white">პოსტის შექმნა</h2>
+            <form id="post-form" class="space-y-4">
+                <input type="hidden" id="edit-post-id">
+                <div class="relative">
+                    <input type="text" id="post-title" placeholder="სათაური" class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 pr-20 text-white focus:border-brand outline-none">
+                    <button type="button" onclick="generateAI()" class="absolute right-1 top-1 bottom-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-3 rounded hover:opacity-90 flex items-center gap-1"><i class="fas fa-magic"></i> AI</button>
+                </div>
+                <textarea id="post-desc" rows="4" placeholder="აღწერა..." class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 text-white focus:border-brand outline-none"></textarea>
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="post-city" class="bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white outline-none"></select>
+                    <label class="cursor-pointer bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm flex items-center justify-center gap-2 hover:bg-dark-border transition text-gray-300">
+                        <i class="fas fa-image text-brand"></i> ფოტოს ატვირთვა
+                        <input type="file" id="post-file" class="hidden" accept="image/*" onchange="previewImage(this)">
+                    </label>
+                </div>
+                <div id="img-preview-box" class="hidden relative">
+                    <img id="img-preview" class="w-full h-40 object-cover rounded-lg border border-dark-border">
+                    <button type="button" onclick="clearImage()" class="absolute top-2 right-2 bg-red-500/80 text-white p-1 rounded-full text-xs w-6 h-6"><i class="fas fa-times"></i></button>
+                </div>
+                <button type="submit" class="w-full bg-brand text-white font-bold py-2 rounded-lg hover:bg-brand/90 transition">გამოქვეყნება</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-8 relative flex flex-col items-center">
+            <button onclick="closeModal('profile-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            
+            <div class="relative group cursor-pointer mb-4">
+                <img id="profile-pic" class="w-32 h-32 rounded-full border-4 border-brand object-cover shadow-lg shadow-brand/20">
+                <label for="profile-upload" class="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white cursor-pointer">
+                    <i class="fas fa-camera text-2xl"></i>
+                </label>
+                <input type="file" id="profile-upload" class="hidden" accept="image/*" onchange="handleProfileUpload(this)">
+            </div>
+            
+            <h2 id="profile-name" class="text-2xl font-bold text-white"></h2>
+            <span id="profile-type" class="text-xs bg-brand/20 text-brand px-3 py-1 rounded-full mt-2 uppercase font-bold tracking-wider"></span>
+            
+            <div class="w-full mt-8 space-y-3">
+                <div class="flex items-center gap-4 p-3 bg-dark-bg rounded-lg border border-dark-border">
+                    <i class="fas fa-phone text-gray-400"></i>
+                    <span id="profile-phone" class="text-sm text-white"></span>
+                </div>
+                <div class="flex items-center gap-4 p-3 bg-dark-bg rounded-lg border border-dark-border">
+                    <i class="fas fa-envelope text-gray-400"></i>
+                    <span id="profile-email" class="text-sm text-white"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        const CITIES = ["თბილისი", "ბათუმი", "ქუთაისი", "რუსთავი", "გორი", "ზუგდიდი", "ფოთი", "თელავი", "ახალციხე", "დისტანციური"];
+        let users = JSON.parse(localStorage.getItem('tc_users')) || [];
+        let posts = JSON.parse(localStorage.getItem('tc_posts')) || [];
+        let currentUser = JSON.parse(localStorage.getItem('tc_curr')) || null;
+        let currentView = 'all'; // 'all', 'mine', 'saved'
+        let videoStream = null;
+
+        // Mouse Glow
+        document.addEventListener('mousemove', (e) => {
+            const glow = document.getElementById('mouse-glow');
+            glow.style.top = e.clientY + 'px';
+            glow.style.left = e.clientX + 'px';
+        });
+
+        // Init
+        function init() {
+            populateCities();
+            if(currentUser) showDashboard();
+            else showAuth();
+        }
+
+        function populateCities() {
+            const selects = [document.getElementById('filter-loc'), document.getElementById('post-city')];
+            selects.forEach(sel => {
+                const isFilter = sel.id === 'filter-loc';
+                sel.innerHTML = isFilter ? '<option value="">🌍 ყველა ქალაქი</option>' : '';
+                CITIES.forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+            });
+        }
+
+        // Auth
+        function toggleAuth(view) {
+            const l = document.getElementById('login-form');
+            const r = document.getElementById('register-form');
+            const bl = document.getElementById('btn-login');
+            const br = document.getElementById('btn-register');
+
+            if(view === 'login') {
+                l.classList.remove('hidden'); r.classList.add('hidden');
+                bl.classList.add('border-b-2', 'border-brand', 'text-brand'); bl.classList.remove('text-gray-500');
+                br.classList.remove('border-b-2', 'border-brand', 'text-brand'); br.classList.add('text-gray-500');
+            } else {
+                l.classList.add('hidden'); r.classList.remove('hidden');
+                br.classList.add('border-b-2', 'border-brand', 'text-brand'); br.classList.remove('text-gray-500');
+                bl.classList.remove('border-b-2', 'border-brand', 'text-brand'); bl.classList.add('text-gray-500');
+            }
+        }
+
+        function checkTeacher() {
+            const role = document.getElementById('reg-role').value;
+            const sec = document.getElementById('teacher-verify');
+            if(role === 'teacher') sec.classList.remove('hidden');
+            else sec.classList.add('hidden');
+        }
+
+        // Camera
+        async function startCamera() {
+            try {
+                const video = document.getElementById('webcam');
+                const stream = await navigator.mediaDevices.getUserMedia({video: true});
+                video.srcObject = stream;
+                video.classList.remove('hidden');
+                document.getElementById('snap-btn').classList.remove('hidden');
+                videoStream = stream;
+            } catch(e) { toast('კამერა ვერ ჩაირთო', 'error'); }
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('webcam');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            const data = canvas.toDataURL('image/png');
+            document.getElementById('selfie-data').value = data;
+            document.getElementById('selfie-preview').src = data;
+            document.getElementById('selfie-preview').classList.remove('hidden');
+            if(videoStream) videoStream.getTracks().forEach(t => t.stop());
+            video.classList.add('hidden'); document.getElementById('snap-btn').classList.add('hidden');
+        }
+
+        // Register
+        document.getElementById('register-form').onsubmit = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value;
+            const surname = document.getElementById('reg-surname').value;
+            const email = document.getElementById('reg-email').value;
+            const phone = document.getElementById('reg-phone').value;
+            const pass = document.getElementById('reg-pass').value;
+            const role = document.getElementById('reg-role').value;
+
+            if(!/^5\d{8}$/.test(phone)) return toast('ნომერი უნდა იყოს 9 ციფრი (5XXXXXXXX)', 'error');
+            if(users.some(u => u.email === email)) return toast('ელ-ფოსტა დაკავებულია', 'error');
+            if(role === 'teacher' && (!document.getElementById('reg-id').files[0] || !document.getElementById('selfie-data').value)) return toast('ვერიფიკაცია სავალდებულოა', 'error');
+
+            const newUser = {
+                id: Date.now().toString(),
+                name, surname, fullName: `${name} ${surname}`,
+                email, phone, pass, role,
+                avatar: `https://ui-avatars.com/api/?name=${name}+${surname}&background=6366f1&color=fff`, // Default Auto Avatar
+                saved: [] // Init saved array
+            };
+            users.push(newUser);
+            localStorage.setItem('tc_users', JSON.stringify(users));
+            toast('რეგისტრაცია წარმატებულია');
+            toggleAuth('login');
+        };
+
+        // Login
+        document.getElementById('login-form').onsubmit = (e) => {
+            e.preventDefault();
+            const val = document.getElementById('log-user').value;
+            const pass = document.getElementById('log-pass').value;
+            const user = users.find(u => (u.email === val || u.phone === val) && u.pass === pass);
+
+            if(user) {
+                currentUser = user;
+                // Ensure saved array exists for old users
+                if(!currentUser.saved) currentUser.saved = [];
+                localStorage.setItem('tc_curr', JSON.stringify(user));
+                showDashboard();
+            } else toast('არასწორი მონაცემები', 'error');
+        };
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('tc_curr');
+            location.reload();
+        }
+
+        // Dashboard
+        function showDashboard() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            updateUserDisplay();
+            
+            if(currentUser.role === 'teacher') document.getElementById('nav-myposts').classList.remove('hidden');
+            else {
+                document.getElementById('nav-create').classList.add('hidden');
+                document.getElementById('nav-myposts').classList.add('hidden');
+            }
+            renderFeed();
+        }
+
+        function showAuth() {
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function updateUserDisplay() {
+            document.getElementById('side-name').innerText = currentUser.fullName;
+            document.getElementById('side-role').innerText = currentUser.role === 'teacher' ? 'მასწავლებელი' : 'მოსწავლე';
+            document.getElementById('side-avatar').src = currentUser.avatar;
+        }
+
+        // Feed Logic
+        function setFeedMode(mode) {
+            currentView = mode;
+            // Update Active State
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            if(mode === 'all') document.getElementById('nav-home').classList.add('nav-active');
+            if(mode === 'mine') document.getElementById('nav-myposts').classList.add('nav-active');
+            if(mode === 'saved') document.getElementById('nav-saved').classList.add('nav-active');
+            
+            // Title
+            const titles = {'all': 'მთავარი', 'mine': 'ჩემი პოსტები', 'saved': 'შენახული პოსტები'};
+            document.getElementById('page-title').innerText = titles[mode];
+            renderFeed();
+        }
+
+        function renderFeed() {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = '';
+            
+            const search = document.getElementById('global-search').value.toLowerCase();
+            const loc = document.getElementById('filter-loc').value;
+
+            let filtered = posts.sort((a,b) => b.timestamp - a.timestamp);
+
+            // 1. Filter by View Mode
+            if(currentView === 'mine') filtered = filtered.filter(p => p.userId === currentUser.id);
+            if(currentView === 'saved') {
+                const savedIds = currentUser.saved || [];
+                filtered = filtered.filter(p => savedIds.includes(p.id));
+            }
+
+            // 2. Filter by Search/Loc
+            filtered = filtered.filter(p => {
+                const matchSearch = p.title.toLowerCase().includes(search) || p.desc.toLowerCase().includes(search);
+                const matchLoc = loc ? p.location === loc : true;
+                return matchSearch && matchLoc;
+            });
+
+            if(filtered.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 mt-10">პოსტები არ მოიძებნა</div>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                const author = users.find(u => u.id === p.userId) || {fullName:'Unknown', avatar:''};
+                const isOwner = currentUser.id === p.userId;
+                const liked = (p.likes || []).includes(currentUser.id);
+                const isSaved = (currentUser.saved || []).includes(p.id);
+
+                const div = document.createElement('div');
+                div.className = "glass-panel p-6 rounded-xl relative group hover:border-brand/50 transition";
+                div.innerHTML = `
+                    <div class="flex justify-between mb-4">
+                        <div class="flex gap-3 items-center">
+                            <img src="${author.avatar}" class="w-10 h-10 rounded-full object-cover">
+                            <div>
+                                <h3 class="font-bold text-white">${p.title}</h3>
+                                <p class="text-xs text-gray-400">${author.fullName} • ${new Date(p.timestamp).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        ${isOwner ? `
+                        <div class="relative group/menu">
+                            <button class="text-gray-400 hover:text-white"><i class="fas fa-ellipsis-v"></i></button>
+                            <div class="absolute right-0 top-6 w-32 bg-dark-bg border border-gray-700 rounded z-20 hidden group-hover/menu:block">
+                                <button onclick="editPost('${p.id}')" class="w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-white/5">რედაქტირება</button>
+                                <button onclick="deletePost('${p.id}')" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5">წაშლა</button>
+                            </div>
+                        </div>` : ''}
+                    </div>
+                    ${p.image ? `<img src="${p.image}" class="w-full h-64 object-cover rounded-lg mb-4 border border-dark-border">` : ''}
+                    <p class="text-gray-300 mb-4 whitespace-pre-wrap">${p.desc}</p>
+                    <div class="flex gap-2 mb-4">
+                        <span class="text-xs bg-brand/10 text-brand px-2 py-1 rounded border border-brand/20">${p.location}</span>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-dark-border pt-3 text-sm text-gray-400">
+                        <div class="flex gap-6">
+                            <button onclick="toggleLike('${p.id}')" class="${liked ? 'text-red-500' : 'hover:text-red-500'} flex items-center gap-2 transition">
+                                <i class="${liked ? 'fas' : 'far'} fa-heart"></i> ${(p.likes||[]).length}
+                            </button>
+                            <button onclick="toggleComments('${p.id}')" class="hover:text-brand flex items-center gap-2 transition">
+                                <i class="far fa-comment"></i> ${(p.comments||[]).length}
+                            </button>
+                        </div>
+                        <button onclick="toggleSave('${p.id}')" class="${isSaved ? 'text-yellow-500' : 'hover:text-yellow-500'} text-lg transition" title="შენახვა">
+                            <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                        </button>
+                    </div>
+                    <div id="comments-${p.id}" class="hidden mt-4 pt-2 border-t border-dark-border">
+                        <div class="space-y-2 mb-3 max-h-40 overflow-y-auto" id="clist-${p.id}">
+                            ${(p.comments||[]).map(c => renderCommentHTML(c, p.id)).join('')}
+                        </div>
+                        <form onsubmit="addComment(event, '${p.id}')" class="flex gap-2">
+                            <input name="text" placeholder="კომენტარი..." class="flex-1 bg-dark-bg border border-dark-border rounded px-3 py-1 text-sm outline-none text-white">
+                            <button class="text-brand"><i class="fas fa-paper-plane"></i></button>
+                        </form>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        document.getElementById('global-search').addEventListener('input', renderFeed);
+
+        // Actions
+        function toggleSave(id) {
+            if(!currentUser.saved) currentUser.saved = [];
+            const idx = currentUser.saved.indexOf(id);
+            if(idx === -1) {
+                currentUser.saved.push(id);
+                toast("პოსტი შეინახა");
+            } else {
+                currentUser.saved.splice(idx, 1);
+                toast("შენახვა გაუქმდა");
+            }
+            // Update Storage
+            localStorage.setItem('tc_curr', JSON.stringify(currentUser));
+            const uIdx = users.findIndex(u => u.id === currentUser.id);
+            users[uIdx] = currentUser;
+            localStorage.setItem('tc_users', JSON.stringify(users));
+            renderFeed();
+        }
+
+        function toggleLike(id) {
+            const p = posts.find(x => x.id === id);
+            const idx = (p.likes||[]).indexOf(currentUser.id);
+            if(idx === -1) { if(!p.likes) p.likes=[]; p.likes.push(currentUser.id); }
+            else p.likes.splice(idx, 1);
+            localStorage.setItem('tc_posts', JSON.stringify(posts));
+            renderFeed();
+        }
+
+        // Profile Upload
+        function handleProfileUpload(input) {
+            const file = input.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const newUrl = e.target.result;
+                    currentUser.avatar = newUrl;
+                    const idx = users.findIndex(u => u.id === currentUser.id);
+                    users[idx].avatar = newUrl;
+                    
+                    localStorage.setItem('tc_users', JSON.stringify(users));
+                    localStorage.setItem('tc_curr', JSON.stringify(currentUser));
+                    
+                    // Update UI
+                    document.getElementById('profile-pic').src = newUrl;
+                    updateUserDisplay();
+                    renderFeed();
+                    toast('ფოტო განახლდა');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Post Create/Edit
+        function openPostModal() {
+            document.getElementById('post-form').reset();
+            document.getElementById('edit-post-id').value = '';
+            document.getElementById('img-preview-box').classList.add('hidden');
+            document.getElementById('post-modal').classList.remove('hidden');
+        }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        
+        function previewImage(inp) {
+            const file = inp.files[0];
+            if(file) {
+                const r = new FileReader();
+                r.onload = (e) => {
+                    document.getElementById('img-preview').src = e.target.result;
+                    document.getElementById('img-preview-box').classList.remove('hidden');
+                };
+                r.readAsDataURL(file);
+            }
+        }
+        function clearImage() {
+            document.getElementById('post-file').value = '';
+            document.getElementById('img-preview-box').classList.add('hidden');
+        }
+
+        document.getElementById('post-form').onsubmit = (e) => {
+            e.preventDefault();
+            const title = document.getElementById('post-title').value;
+            const desc = document.getElementById('post-desc').value;
+            const loc = document.getElementById('post-city').value;
+            const img = document.getElementById('img-preview-box').classList.contains('hidden') ? null : document.getElementById('img-preview').src;
+            const editId = document.getElementById('edit-post-id').value;
+
+            if(editId) {
+                const idx = posts.findIndex(p => p.id === editId);
+                posts[idx] = {...posts[idx], title, desc, location: loc, image: img || posts[idx].image};
+            } else {
+                posts.unshift({
+                    id: Date.now().toString(), userId: currentUser.id, title, desc, location: loc, image: img, timestamp: Date.now(), likes: [], comments: []
+                });
+            }
+            localStorage.setItem('tc_posts', JSON.stringify(posts));
+            closeModal('post-modal');
+            renderFeed();
+        };
+
+        function generateAI() {
+            const title = document.getElementById('post-title').value;
+            const desc = document.getElementById('post-desc');
+            if(!title) return toast('ჯერ ჩაწერეთ სათაური', 'error');
+            desc.value = "გენერირება...";
+            setTimeout(() => {
+                desc.value = `გამარჯობა, მე ვარ სერტიფიცირებული პედაგოგი. გთავაზობთ ${title}-ის კურსებს თანამედროვე მეთოდებით. დამიკავშირდით!`;
+                toast('AI ტექსტი მზადაა');
+            }, 1000);
+        }
+
+        function deletePost(id) {
+            if(confirm('წავშალოთ?')) {
+                posts = posts.filter(p => p.id !== id);
+                localStorage.setItem('tc_posts', JSON.stringify(posts));
+                renderFeed();
+            }
+        }
+
+        function editPost(id) {
+            const p = posts.find(x => x.id === id);
+            document.getElementById('post-title').value = p.title;
+            document.getElementById('post-desc').value = p.desc;
+            document.getElementById('post-city').value = p.location;
+            document.getElementById('edit-post-id').value = p.id;
+            if(p.image) {
+                document.getElementById('img-preview').src = p.image;
+                document.getElementById('img-preview-box').classList.remove('hidden');
+            }
+            document.getElementById('post-modal').classList.remove('hidden');
+        }
+
+        // Comments
+        function toggleComments(id) { document.getElementById(`comments-${id}`).classList.toggle('hidden'); }
+        function renderCommentHTML(c, pid) {
+            const u = users.find(x => x.id === c.userId);
+            const isOwner = c.userId === currentUser.id;
+            return `
+                <div class="flex gap-2 text-sm mb-2 group">
+                    <img src="${u.avatar}" class="w-6 h-6 rounded-full">
+                    <div class="bg-dark-bg border border-dark-border p-2 rounded flex-1">
+                        <div class="flex justify-between">
+                            <span class="font-bold text-xs text-brand">${u.fullName}</span>
+                            ${isOwner ? `<button onclick="deleteComment('${pid}', '${c.id}')" class="text-xs text-red-500 hover:text-white"><i class="fas fa-trash"></i></button>` : ''}
+                        </div>
+                        <p class="text-gray-300 text-xs mt-1">${c.text}</p>
+                    </div>
+                </div>`;
+        }
+        function addComment(e, pid) {
+            e.preventDefault();
+            const text = e.target.text.value;
+            if(!text) return;
+            const p = posts.find(x => x.id === pid);
+            if(!p.comments) p.comments = [];
+            p.comments.push({id: Date.now().toString(), userId: currentUser.id, text});
+            localStorage.setItem('tc_posts', JSON.stringify(posts));
+            renderFeed();
+            setTimeout(()=>document.getElementById(`comments-${pid}`).classList.remove('hidden'), 50);
+        }
+        function deleteComment(pid, cid) {
+            const p = posts.find(x => x.id === pid);
+            p.comments = p.comments.filter(c => c.id !== cid);
+            localStorage.setItem('tc_posts', JSON.stringify(posts));
+            renderFeed();
+            setTimeout(()=>document.getElementById(`comments-${pid}`).classList.remove('hidden'), 50);
+        }
+
+        // Profile View
+        function renderProfile() {
+            document.getElementById('profile-name').innerText = currentUser.fullName;
+            document.getElementById('profile-type').innerText = currentUser.role;
+            document.getElementById('profile-email').innerText = currentUser.email;
+            document.getElementById('profile-phone').innerText = currentUser.phone;
+            document.getElementById('profile-pic').src = currentUser.avatar;
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+
+        function toast(msg, type='success') {
+            const div = document.createElement('div');
+            div.className = `glass-panel px-4 py-3 rounded border-l-4 ${type==='error'?'border-red-500 text-red-400':'border-brand text-green-400'} shadow-lg animate-pulse-slow`;
+            div.innerText = msg;
+            document.getElementById('toast-container').appendChild(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
